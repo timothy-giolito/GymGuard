@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Upload, File, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { Upload, File, Image as ImageIcon, Trash2, Edit2, Check, X } from 'lucide-react';
 import { store } from '../lib/store';
 import PdfViewer from '../components/PdfViewer';
 
@@ -15,6 +15,8 @@ export default function Workouts() {
   const [files, setFiles] = useState<WorkoutFile[]>([]);
   const [activeFile, setActiveFile] = useState<WorkoutFile | null>(null);
   const [activeUrl, setActiveUrl] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadFiles = async () => {
@@ -98,6 +100,21 @@ export default function Workouts() {
     }
   };
 
+  const handleRenameSave = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!editingName.trim()) {
+      setEditingId(null);
+      return;
+    }
+    const updatedFiles = files.map(f => f.id === id ? { ...f, name: editingName.trim() } : f);
+    await store.setItem('workout_files', updatedFiles);
+    setFiles(updatedFiles);
+    setEditingId(null);
+    if (activeFile?.id === id) {
+      setActiveFile({ ...activeFile, name: editingName.trim() });
+    }
+  };
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -163,21 +180,71 @@ export default function Workouts() {
                   }}
                   onClick={() => setActiveFile(file)}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', overflow: 'hidden', flex: 1 }}>
                     <div style={{ color: 'var(--color-primary)' }}>
                       {file.type.includes('pdf') ? <File size={24} /> : <ImageIcon size={24} />}
                     </div>
-                    <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {file.name}
-                    </div>
+                    {editingId === file.id ? (
+                      <input
+                        type="text"
+                        className="input-field"
+                        style={{ padding: '0.25rem 0.5rem', flex: 1, margin: 0 }}
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleRenameSave(file.id, e as any);
+                          if (e.key === 'Escape') setEditingId(null);
+                        }}
+                      />
+                    ) : (
+                      <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {file.name}
+                      </div>
+                    )}
                   </div>
-                  <button
-                    className="btn btn-danger"
-                    style={{ padding: '0.5rem' }}
-                    onClick={(e) => handleDelete(file.id, e)}
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {editingId === file.id ? (
+                      <>
+                        <button
+                          className="btn btn-primary"
+                          style={{ padding: '0.5rem' }}
+                          onClick={(e) => handleRenameSave(file.id, e)}
+                        >
+                          <Check size={16} />
+                        </button>
+                        <button
+                          className="btn"
+                          style={{ padding: '0.5rem' }}
+                          onClick={(e) => { e.stopPropagation(); setEditingId(null); }}
+                        >
+                          <X size={16} />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          className="btn"
+                          style={{ padding: '0.5rem' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingId(file.id);
+                            setEditingName(file.name);
+                          }}
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          className="btn btn-danger"
+                          style={{ padding: '0.5rem' }}
+                          onClick={(e) => handleDelete(file.id, e)}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

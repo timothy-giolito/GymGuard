@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CreditCard, Calendar, Plus } from 'lucide-react';
-import { format, addMonths, isAfter } from 'date-fns';
+import { format, addMonths, isAfter, differenceInDays } from 'date-fns';
 import { store } from '../lib/store';
 
 type PlanType = 'lun-ven' | 'lun-sab';
@@ -57,6 +57,15 @@ export default function Subscriptions() {
 
   const isExpired = (sub: Subscription) => {
     return isAfter(new Date(), getEndDate(sub));
+  };
+
+  const getDaysRemaining = (sub: Subscription) => {
+    const end = getEndDate(sub);
+    const today = new Date();
+    // Reset time for accurate day count
+    today.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    return differenceInDays(end, today);
   };
 
   return (
@@ -170,6 +179,9 @@ export default function Subscriptions() {
                   <Calendar size={14} /> Scadenza
                 </div>
                 <div style={{ fontWeight: '500' }}>{format(getEndDate(activeSub), 'dd MMM yyyy')}</div>
+                <div style={{ fontSize: '0.75rem', color: isExpired(activeSub) ? 'var(--danger)' : 'var(--text-muted)', marginTop: '0.25rem' }}>
+                  {isExpired(activeSub) ? 'Scaduto' : `${getDaysRemaining(activeSub)} giorni rimanenti`}
+                </div>
               </div>
             </div>
             

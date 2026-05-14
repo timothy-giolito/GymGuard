@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { Upload, File, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { store } from '../lib/store';
+import PdfViewer from '../components/PdfViewer';
 
 interface WorkoutFile {
   id: string;
   name: string;
   type: string;
-  data: Blob; // Stored as Blob in IndexedDB via localforage
+  dataUrl?: string; // Stored as Base64 string for better persistence
+  data?: Blob; // Legacy format
 }
 
 export default function Workouts() {
@@ -26,40 +28,63 @@ export default function Workouts() {
     loadFiles();
   }, []);
 
-  // When activeFile changes, create an object URL for it
+  // When activeFile changes, use dataUrl or create an object URL for legacy files
   useEffect(() => {
-    if (activeFile && activeFile.data) {
-      const url = URL.createObjectURL(activeFile.data);
-      setActiveUrl(url);
-      return () => URL.revokeObjectURL(url);
+    if (activeFile) {
+      if (activeFile.dataUrl) {
+        setActiveUrl(activeFile.dataUrl);
+      } else if (activeFile.data && activeFile.data instanceof Blob) {
+        try {
+          const url = URL.createObjectURL(activeFile.data);
+          setActiveUrl(url);
+          return () => URL.revokeObjectURL(url);
+        } catch (e) {
+          console.error("Failed to create object URL for legacy file", e);
+          setActiveUrl(null);
+        }
+      } else {
+        setActiveUrl(null);
+      }
     } else {
       setActiveUrl(null);
     }
   }, [activeFile]);
 
-
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      
+
       // Basic validation
-      if (!file.type.includes('pdf') && !file.type.includes('image')) {
+      const isPdf = file.type.includes('pdf') || file.name.toLowerCase().endsWith('.pdf');
+      const isImage = file.type.includes('image') || file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/);
+
+      if (!isPdf && !isImage) {
         alert('Per favore carica solo PDF o Immagini.');
         return;
       }
 
-      const newFile: WorkoutFile = {
-        id: Date.now().toString(),
-        name: file.name,
-        type: file.type,
-        data: file
+      // Ensure type is set correctly for our internal logic
+      const fileType = isPdf ? 'application/pdf' : (file.type || 'image/jpeg');
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const dataUrl = event.target?.result as string;
+        if (!dataUrl) return;
+
+        const newFile: WorkoutFile = {
+          id: Date.now().toString(),
+          name: file.name,
+          type: fileType,
+          dataUrl: dataUrl
+        };
+
+        const updatedFiles = [...files, newFile];
+        await store.setItem('workout_files', updatedFiles);
+        setFiles(updatedFiles);
+        setActiveFile(newFile);
       };
 
-      const updatedFiles = [...files, newFile];
-      await store.setItem('workout_files', updatedFiles);
-      setFiles(updatedFiles);
-      setActiveFile(newFile);
+      reader.readAsDataURL(file);
     }
   };
 
@@ -81,10 +106,10 @@ export default function Workouts() {
           <Upload size={20} />
           Carica
         </button>
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          style={{ display: 'none' }} 
+        <input
+          type="file"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
           accept="application/pdf,image/*"
           onChange={handleFileUpload}
         />
@@ -100,18 +125,14 @@ export default function Workouts() {
               Chiudi
             </button>
           </div>
-          
+
           <div className="card" style={{ flex: 1, padding: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {activeFile.type.includes('pdf') ? (
-              <iframe 
-                src={activeUrl} 
-                style={{ width: '100%', height: '100%', border: 'none', minHeight: '400px' }}
-                title={activeFile.name}
-              />
+              <PdfViewer dataUrl={activeUrl} fileName={activeFile.name} />
             ) : (
-              <img 
-                src={activeUrl} 
-                alt={activeFile.name} 
+              <img
+                src={activeUrl}
+                alt={activeFile.name}
                 style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
               />
             )}
@@ -129,13 +150,13 @@ export default function Workouts() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {files.map(file => (
-                <div 
-                  key={file.id} 
-                  className="card" 
-                  style={{ 
-                    padding: '1rem', 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                <div
+                  key={file.id}
+                  className="card"
+                  style={{
+                    padding: '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'space-between',
                     cursor: 'pointer',
                     transition: 'border-color 0.2s ease'
@@ -150,8 +171,8 @@ export default function Workouts() {
                       {file.name}
                     </div>
                   </div>
-                  <button 
-                    className="btn btn-danger" 
+                  <button
+                    className="btn btn-danger"
                     style={{ padding: '0.5rem' }}
                     onClick={(e) => handleDelete(file.id, e)}
                   >

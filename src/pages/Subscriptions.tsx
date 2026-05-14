@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CreditCard, Calendar, Plus } from 'lucide-react';
+import { CreditCard, Calendar, Plus, Trash2 } from 'lucide-react';
 import { format, addMonths, isAfter, differenceInDays } from 'date-fns';
 import { store } from '../lib/store';
 
@@ -26,6 +26,7 @@ const PLAN_LABELS = {
 export default function Subscriptions() {
   const [activeSub, setActiveSub] = useState<Subscription | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [plan, setPlan] = useState<PlanType>('lun-ven');
   const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [duration, setDuration] = useState(1);
@@ -49,6 +50,16 @@ export default function Subscriptions() {
     await store.setItem('active_subscription', newSub);
     setActiveSub(newSub);
     setShowForm(false);
+  };
+
+  const handleDeleteRequest = () => {
+    setShowConfirmDelete(true);
+  };
+
+  const confirmDelete = async () => {
+    await store.removeItem('active_subscription');
+    setActiveSub(null);
+    setShowConfirmDelete(false);
   };
 
   const getEndDate = (sub: Subscription) => {
@@ -155,15 +166,25 @@ export default function Subscriptions() {
                   {PLAN_LABELS[activeSub.plan]}
                 </div>
               </div>
-              <div style={{ 
-                padding: '0.25rem 0.75rem', 
-                borderRadius: '1rem', 
-                fontSize: '0.75rem', 
-                fontWeight: 'bold',
-                background: isExpired(activeSub) ? 'var(--danger-dim)' : 'var(--color-primary-dim)',
-                color: isExpired(activeSub) ? 'var(--danger)' : 'var(--color-primary)'
-              }}>
-                {isExpired(activeSub) ? 'Scaduto' : 'Attivo'}
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <div style={{ 
+                  padding: '0.25rem 0.75rem', 
+                  borderRadius: '1rem', 
+                  fontSize: '0.75rem', 
+                  fontWeight: 'bold',
+                  background: isExpired(activeSub) ? 'var(--danger-dim)' : 'var(--color-primary-dim)',
+                  color: isExpired(activeSub) ? 'var(--danger)' : 'var(--color-primary)'
+                }}>
+                  {isExpired(activeSub) ? 'Scaduto' : 'Attivo'}
+                </div>
+                <button 
+                  className="btn btn-danger" 
+                  style={{ padding: '0.35rem 0.5rem', border: 'none' }}
+                  onClick={handleDeleteRequest}
+                  title="Cancella abbonamento"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
             </div>
 
@@ -201,6 +222,35 @@ export default function Subscriptions() {
           <button className="btn btn-primary" onClick={() => setShowForm(true)}>
             Aggiungi Abbonamento
           </button>
+        </div>
+      )}
+
+      {showConfirmDelete && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '1rem'
+        }}>
+          <div className="card animate-in fade-in zoom-in duration-200" style={{ width: '100%', maxWidth: '350px' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Conferma Cancellazione</h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+              Sei sicuro di voler cancellare l'abbonamento attivo? Questa azione non può essere annullata.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button className="btn" onClick={() => setShowConfirmDelete(false)}>
+                Annulla
+              </button>
+              <button className="btn btn-danger" onClick={confirmDelete}>
+                Cancella Abbonamento
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -3,7 +3,7 @@ import fs from 'fs';
 
 async function generate() {
   const bgSize = 1024;
-  const fgSize = Math.floor(1024 * 0.6); // 60% of size for safe area
+  const fgSize = Math.floor(1024 * 0.90); // Increased to 90% to make the icon larger
   
   // Create background: solid dark color #171717
   await sharp({

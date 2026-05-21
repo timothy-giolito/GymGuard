@@ -5,9 +5,10 @@ Un'applicazione mobile moderna e reattiva pensata per gestire in modo completo l
 ## ✨ Funzionalità Principali
 
 * 📝 **Diario di Allenamento**: Registra ogni esercizio, serie e ripetizione. L'interfaccia è l'ideale per tenere traccia dei progressi della tua "Bro Split" settimanale.
+* 📇 **Gestore Schede di Allenamento**: Salva ogni scheda di allenamento in qualsiasi formato in modo da averla comodamente in-app.
 * ⏱️ **Smart Timer**: Gestisci i tempi di recupero tra una serie e l'altra con precisione per ottimizzare la resa fisica.
 * 📊 **Grafici di Progressione**: Monitora i tuoi miglioramenti nel tempo grazie a grafici interattivi e statistiche dettagliate basate su `recharts`.
-* 📄 **Gestione Abbonamenti (PDF)**: Carica e visualizza i documenti e le ricevute della palestra direttamente in-app, grazie all'integrazione nativa di un lettore PDF.
+* 📄 **Gestione Abbonamenti**: Carica e visualizza i documenti e le ricevute della palestra direttamente in-app.
 * 📱 **Esperienza Nativa**: Interfaccia fluida ottimizzata per dispositivi Android con un tema scuro elegante (`#0a0a0a`) applicato direttamente alla Status Bar.
 * 💾 **Salvataggio Dati Offline**: I tuoi dati sono sempre al sicuro e disponibili anche senza connessione internet, archiviati in modo persistente sul dispositivo tramite `localforage`.
 * ✨ **UI Animata**: Transizioni fluide e animazioni curate nei minimi dettagli gestite tramite `framer-motion`.

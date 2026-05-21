@@ -1,24 +1,26 @@
 import { useState, useEffect, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
+import { ZoomIn, ZoomOut } from 'lucide-react';
 
 // Setup local worker to prevent CORS and network issues in WebViews
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface PdfViewerProps {
   dataUrl: string;
-  fileName: string;
+  fileName?: string;
 }
 
 export default function PdfViewer({ dataUrl }: PdfViewerProps) {
   const [pdf, setPdf] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
-  const [pageNumber, setPageNumber] = useState(1);
   const [pageCount, setPageCount] = useState(0);
-  const [scale, setScale] = useState(1.2);
+  const [scale, setScale] = useState(1.0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const renderTaskRef = useRef<any>(null);
+  
+  // Track rendered pages to avoid re-rendering them unnecessarily
+  const renderedPagesRef = useRef<Set<number>>(new Set());
+  const renderTasksRef = useRef<{ [key: number]: any }>({});
 
   useEffect(() => {
     const loadPdf = async () => {
@@ -31,7 +33,6 @@ export default function PdfViewer({ dataUrl }: PdfViewerProps) {
         // Robust Base64 to Uint8Array conversion
         if (dataUrl && dataUrl.startsWith('data:')) {
           const base64Data = dataUrl.split(',')[1];
-          // use binary string decode
           const binaryString = window.atob(base64Data);
           const bytes = new Uint8Array(binaryString.length);
           for (let i = 0; i < binaryString.length; i++) {
@@ -45,7 +46,7 @@ export default function PdfViewer({ dataUrl }: PdfViewerProps) {
         
         setPdf(loadedPdf);
         setPageCount(loadedPdf.numPages);
-        setPageNumber(1);
+        renderedPagesRef.current.clear();
       } catch (err: any) {
         console.error('Errore nel caricamento del PDF:', err);
         setError(`Impossibile caricare il PDF: ${err?.message || 'File non valido o corrotto.'}`);
@@ -73,9 +74,9 @@ export default function PdfViewer({ dataUrl }: PdfViewerProps) {
       canvas.width = viewport.width;
       canvas.height = viewport.height;
 
-      if (renderTaskRef.current) {
+      if (renderTasksRef.current[pageNum]) {
         try {
-          await renderTaskRef.current.cancel();
+          await renderTasksRef.current[pageNum].cancel();
         } catch (e) {
           // ignore cancel error
         }
@@ -87,28 +88,31 @@ export default function PdfViewer({ dataUrl }: PdfViewerProps) {
         canvas: canvas
       });
 
-      renderTaskRef.current = renderTask;
+      renderTasksRef.current[pageNum] = renderTask;
       await renderTask.promise;
+      renderedPagesRef.current.add(pageNum);
     } catch (err: any) {
       if (err.name !== 'RenderingCancelledException') {
-        console.error('Errore nel rendering della pagina:', err);
+        console.error(`Errore nel rendering della pagina ${pageNum}:`, err);
       }
     }
   };
 
   useEffect(() => {
-    if (pdf && pageNumber > 0 && pageNumber <= pageCount) {
-      renderPage(pageNumber);
-    }
-  }, [pdf, pageNumber, scale, pageCount]);
-
-  const handlePrevPage = () => {
-    setPageNumber(prev => Math.max(prev - 1, 1));
-  };
-
-  const handleNextPage = () => {
-    setPageNumber(prev => Math.min(prev + 1, pageCount));
-  };
+    if (!pdf || pageCount === 0) return;
+    
+    // Clear tracked pages on scale change to force re-render
+    renderedPagesRef.current.clear();
+    
+    // Sequence rendering to not freeze the UI
+    const renderAllPages = async () => {
+      for (let i = 1; i <= pageCount; i++) {
+        await renderPage(i);
+      }
+    };
+    
+    renderAllPages();
+  }, [pdf, pageCount, scale]);
 
   const handleZoomIn = () => {
     setScale(prev => Math.min(prev + 0.2, 3));
@@ -131,7 +135,7 @@ export default function PdfViewer({ dataUrl }: PdfViewerProps) {
         <div style={{ 
           width: '40px', 
           height: '40px', 
-          border: '4px solid var(--color-primary-light)', 
+          border: '4px solid var(--bg-surface-active)', 
           borderTop: '4px solid var(--color-primary)',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
@@ -152,7 +156,7 @@ export default function PdfViewer({ dataUrl }: PdfViewerProps) {
         textAlign: 'center'
       }}>
         <div>
-          <p style={{ color: 'var(--color-danger)', marginBottom: '1rem' }}>⚠️</p>
+          <p style={{ color: 'var(--danger)', marginBottom: '1rem', fontSize: '2rem' }}>⚠️</p>
           <p style={{ color: 'var(--text-muted)' }}>{error}</p>
         </div>
       </div>
@@ -164,116 +168,85 @@ export default function PdfViewer({ dataUrl }: PdfViewerProps) {
       display: 'flex', 
       flexDirection: 'column', 
       height: '100%',
-      backgroundColor: '#f5f5f5'
+      position: 'relative',
+      backgroundColor: 'var(--bg-main)'
     }}>
-      {/* Toolbar */}
+      {/* Floating Toolbar for Zoom */}
       <div style={{ 
+        position: 'absolute',
+        bottom: '1rem',
+        right: '1rem',
         display: 'flex', 
-        gap: '0.75rem', 
-        alignItems: 'center', 
-        padding: '0.75rem',
-        backgroundColor: '#fff',
-        borderBottom: '1px solid var(--color-border)',
-        flexWrap: 'wrap'
+        flexDirection: 'column',
+        gap: '0.5rem', 
+        backgroundColor: 'var(--bg-surface)',
+        padding: '0.5rem',
+        borderRadius: '2rem',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+        zIndex: 10
       }}>
-        <button 
-          onClick={handlePrevPage} 
-          disabled={pageNumber <= 1}
-          className="btn"
-          style={{ padding: '0.5rem', opacity: pageNumber <= 1 ? 0.5 : 1 }}
-        >
-          <ChevronLeft size={18} />
-        </button>
-
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '0.5rem',
-          padding: '0.25rem 0.5rem',
-          backgroundColor: 'var(--color-secondary-light)',
-          borderRadius: '4px'
-        }}>
-          <input 
-            type="number" 
-            min="1" 
-            max={pageCount}
-            value={pageNumber}
-            onChange={(e) => {
-              const newPage = Math.min(Math.max(parseInt(e.target.value) || 1, 1), pageCount);
-              setPageNumber(newPage);
-            }}
-            style={{ 
-              width: '50px', 
-              padding: '0.25rem',
-              border: 'none',
-              backgroundColor: 'transparent',
-              textAlign: 'center',
-              fontWeight: 'bold'
-            }}
-          />
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-            / {pageCount}
-          </span>
-        </div>
-
-        <button 
-          onClick={handleNextPage} 
-          disabled={pageNumber >= pageCount}
-          className="btn"
-          style={{ padding: '0.5rem', opacity: pageNumber >= pageCount ? 0.5 : 1 }}
-        >
-          <ChevronRight size={18} />
-        </button>
-
-        <div style={{ flex: 1, minWidth: '50px' }} />
-
-        <button 
-          onClick={handleZoomOut} 
-          disabled={scale <= 0.5}
-          className="btn"
-          style={{ padding: '0.5rem', opacity: scale <= 0.5 ? 0.5 : 1 }}
-        >
-          <ZoomOut size={18} />
-        </button>
-
-        <div style={{ 
-          padding: '0.25rem 0.5rem',
-          color: 'var(--text-muted)',
-          fontSize: '0.875rem',
-          minWidth: '45px',
-          textAlign: 'center'
-        }}>
-          {Math.round(scale * 100)}%
-        </div>
-
         <button 
           onClick={handleZoomIn} 
           disabled={scale >= 3}
           className="btn"
-          style={{ padding: '0.5rem', opacity: scale >= 3 ? 0.5 : 1 }}
+          style={{ padding: '0.75rem', borderRadius: '50%', width: '40px', height: '40px', opacity: scale >= 3 ? 0.5 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          <ZoomIn size={18} />
+          <ZoomIn size={20} />
+        </button>
+        <div style={{ textAlign: 'center', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>
+          {Math.round(scale * 100)}%
+        </div>
+        <button 
+          onClick={handleZoomOut} 
+          disabled={scale <= 0.5}
+          className="btn"
+          style={{ padding: '0.75rem', borderRadius: '50%', width: '40px', height: '40px', opacity: scale <= 0.5 ? 0.5 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <ZoomOut size={20} />
         </button>
       </div>
 
-      {/* Canvas Container */}
+      {/* Scrollable Canvas Container */}
       <div style={{ 
         flex: 1, 
-        overflow: 'auto', 
+        overflowY: 'auto', 
+        overflowX: 'auto',
         display: 'flex', 
+        flexDirection: 'column',
         alignItems: 'center', 
-        justifyContent: 'center',
-        padding: '1rem'
+        padding: '1rem',
+        gap: '1rem'
       }}>
-        <canvas 
-          id={`pdf-canvas-${pageNumber}`}
-          style={{ 
-            maxWidth: '100%',
-            maxHeight: '100%',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            borderRadius: '4px'
-          }}
-        />
+        {Array.from({ length: pageCount }, (_, i) => i + 1).map(pageNum => (
+          <div key={pageNum} style={{
+            position: 'relative',
+            backgroundColor: '#fff',
+            boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+            borderRadius: '4px',
+            overflow: 'hidden'
+          }}>
+            <canvas 
+              id={`pdf-canvas-${pageNum}`}
+              style={{ 
+                display: 'block',
+                maxWidth: '100%'
+              }}
+            />
+            {/* Page number indicator on each page */}
+            <div style={{
+              position: 'absolute',
+              bottom: '0.5rem',
+              right: '0.5rem',
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              color: 'white',
+              padding: '0.25rem 0.5rem',
+              borderRadius: '1rem',
+              fontSize: '0.75rem'
+            }}>
+              {pageNum} / {pageCount}
+            </div>
+          </div>
+        ))}
       </div>
 
       <style>{`

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CreditCard, Calendar, Plus, Trash2 } from 'lucide-react';
 import { format, addMonths, isAfter, differenceInDays } from 'date-fns';
+import { it } from 'date-fns/locale';
 import { store } from '../lib/store';
 
 type PlanType = 'lun-ven' | 'lun-sab';
@@ -193,13 +194,13 @@ export default function Subscriptions() {
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                   <Calendar size={14} /> Inizio
                 </div>
-                <div style={{ fontWeight: '500' }}>{format(new Date(activeSub.startDate), 'dd MMM yyyy')}</div>
+                <div style={{ fontWeight: '500' }}>{format(new Date(activeSub.startDate), 'dd MMM yyyy', { locale: it })}</div>
               </div>
               <div>
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                   <Calendar size={14} /> Scadenza
                 </div>
-                <div style={{ fontWeight: '500' }}>{format(getEndDate(activeSub), 'dd MMM yyyy')}</div>
+                <div style={{ fontWeight: '500' }}>{format(getEndDate(activeSub), 'dd MMM yyyy', { locale: it })}</div>
                 <div style={{ fontSize: '0.75rem', color: isExpired(activeSub) ? 'var(--danger)' : 'var(--text-muted)', marginTop: '0.25rem' }}>
                   {isExpired(activeSub) ? 'Scaduto' : `${getDaysRemaining(activeSub)} giorni rimanenti`}
                 </div>

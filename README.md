@@ -31,9 +31,12 @@ Assicurati di avere installato Node.js e le dipendenze per lo sviluppo Android (
 
 1. Clona la repository e accedi alla cartella del progetto.
 2. Installa le dipendenze:
+
    ```bash
    npm install
-3. Avvia il server di sviluppo web: 
+   
+4. Avvia il server di sviluppo web:
+
    ```bash
    npm run dev
 (Puoi anche utilizzare npm run dev:host per esporre l'app sulla rete locale).
@@ -56,8 +59,6 @@ Per compilare e testare l'applicazione nativa tramite Capacitor:
 
    ```bash
    npx cap open android
-
----
    
 ### Autore 👨‍💻
 Sviluppato con dedizione da Timothy.

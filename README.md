@@ -61,5 +61,6 @@ Per compilare e testare l'applicazione nativa tramite Capacitor:
    npx cap open android
    
 ### Autore 👨‍💻
-Sviluppato con dedizione da Timothy.
+Sviluppato con dedizione da Timothy Giolito per un utilizzo quotidiano durante la sessione di allenamento.
+
 

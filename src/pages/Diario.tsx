@@ -13,6 +13,7 @@ export default function Diario() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [workouts, setWorkouts] = useState<WorkoutSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [workoutToEdit, setWorkoutToEdit] = useState<WorkoutSession | null>(null);
 
   const loadWorkouts = async () => {
     setLoading(true);
@@ -27,6 +28,17 @@ export default function Diario() {
 
   const handleSave = () => {
     loadWorkouts();
+    setWorkoutToEdit(null);
+    setActiveTab('overview');
+  };
+
+  const handleEdit = (workout: WorkoutSession) => {
+    setWorkoutToEdit(workout);
+    setActiveTab('add');
+  };
+
+  const handleCancel = () => {
+    setWorkoutToEdit(null);
     setActiveTab('overview');
   };
 
@@ -77,13 +89,13 @@ export default function Diario() {
 
         {activeTab === 'add' && (
           <div className="fade-in">
-            <WorkoutForm onSave={handleSave} onCancel={() => setActiveTab('overview')} />
+            <WorkoutForm onSave={handleSave} onCancel={handleCancel} initialWorkout={workoutToEdit} />
           </div>
         )}
 
         {activeTab === 'history' && (
           <div className="fade-in">
-            <WorkoutHistory workouts={workouts} onUpdate={loadWorkouts} />
+            <WorkoutHistory workouts={workouts} onUpdate={loadWorkouts} onEdit={handleEdit} />
           </div>
         )}
       </div>

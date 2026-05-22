@@ -1,15 +1,16 @@
 import { workoutStore } from '../../lib/workoutStore';
 import type { WorkoutSession } from '../../lib/workoutStore';
 import { format, parseISO } from 'date-fns';
-import { Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Trash2, ChevronDown, ChevronUp, Edit2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface WorkoutHistoryProps {
   workouts: WorkoutSession[];
   onUpdate: () => void;
+  onEdit: (workout: WorkoutSession) => void;
 }
 
-export default function WorkoutHistory({ workouts, onUpdate }: WorkoutHistoryProps) {
+export default function WorkoutHistory({ workouts, onUpdate, onEdit }: WorkoutHistoryProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
@@ -65,7 +66,15 @@ export default function WorkoutHistory({ workouts, onUpdate }: WorkoutHistoryPro
               </div>
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <button 
+                className="btn" 
+                style={{ padding: '0.5rem', background: 'transparent', border: 'none', color: 'var(--color-primary)' }}
+                onClick={(e) => { e.stopPropagation(); onEdit(workout); }}
+                aria-label="Modifica"
+              >
+                <Edit2 size={18} />
+              </button>
               <button 
                 className="btn" 
                 style={{ padding: '0.5rem', background: 'transparent', border: 'none', color: 'var(--danger)' }}

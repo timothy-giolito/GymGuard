@@ -3,22 +3,56 @@ import { Plus, Trash2, Save, Copy } from 'lucide-react';
 import { workoutStore } from '../../lib/workoutStore';
 import type { WorkoutSession, WorkoutExercise } from '../../lib/workoutStore';
 import { CustomDatePicker } from '../CustomDatePicker';
+import localforage from 'localforage';
 
 interface WorkoutFormProps {
   onSave: () => void;
   onCancel: () => void;
+  initialWorkout?: WorkoutSession | null;
 }
 
-export default function WorkoutForm({ onSave, onCancel }: WorkoutFormProps) {
+export default function WorkoutForm({ onSave, onCancel, initialWorkout }: WorkoutFormProps) {
+  const [id, setId] = useState(workoutStore.createId());
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
   const [notes, setNotes] = useState('');
   const [lastWorkout, setLastWorkout] = useState<WorkoutSession | null>(null);
   const [showEmptyAlert, setShowEmptyAlert] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    workoutStore.getLastWorkout().then(setLastWorkout);
-  }, []);
+    const init = async () => {
+      workoutStore.getLastWorkout().then(setLastWorkout);
+      
+      if (initialWorkout) {
+        setId(initialWorkout.id);
+        setDate(initialWorkout.date);
+        setExercises(initialWorkout.exercises);
+        setNotes(initialWorkout.notes || '');
+      } else {
+        const draft = await localforage.getItem<any>('gymguard_workout_draft');
+        if (draft) {
+          setId(draft.id || workoutStore.createId());
+          setDate(draft.date);
+          setExercises(draft.exercises || []);
+          setNotes(draft.notes || '');
+        } else {
+          setId(workoutStore.createId());
+          setDate(new Date().toISOString().split('T')[0]);
+          setExercises([]);
+          setNotes('');
+        }
+      }
+      setInitialized(true);
+    };
+    init();
+  }, [initialWorkout]);
+
+  useEffect(() => {
+    if (initialized) {
+      localforage.setItem('gymguard_workout_draft', { id, date, exercises, notes });
+    }
+  }, [id, date, exercises, notes, initialized]);
 
   const handleDuplicateLast = () => {
     if (lastWorkout) {
@@ -98,13 +132,14 @@ export default function WorkoutForm({ onSave, onCancel }: WorkoutFormProps) {
     }
 
     const session: WorkoutSession = {
-      id: workoutStore.createId(),
+      id: id,
       date,
       exercises: validExercises,
       notes
     };
 
     await workoutStore.saveWorkout(session);
+    await localforage.removeItem('gymguard_workout_draft');
     onSave();
   };
 
@@ -222,7 +257,10 @@ export default function WorkoutForm({ onSave, onCancel }: WorkoutFormProps) {
         </button>
 
         <div style={{ display: 'flex', gap: '1rem' }}>
-          <button className="btn" onClick={onCancel} style={{ flex: 1 }}>Annulla</button>
+          <button className="btn" onClick={async () => {
+            await localforage.removeItem('gymguard_workout_draft');
+            onCancel();
+          }} style={{ flex: 1 }}>Annulla</button>
           <button className="btn btn-primary" onClick={handleSave} style={{ flex: 2 }}>
             <Save size={18} /> Salva Allenamento
           </button>

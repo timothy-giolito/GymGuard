@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Trash2, Save, Copy } from 'lucide-react';
 import { workoutStore } from '../../lib/workoutStore';
 import type { WorkoutSession, WorkoutExercise } from '../../lib/workoutStore';
+import { CustomDatePicker } from '../CustomDatePicker';
 
 interface WorkoutFormProps {
   onSave: () => void;
@@ -114,11 +115,9 @@ export default function WorkoutForm({ onSave, onCancel }: WorkoutFormProps) {
         
         <div style={{ marginBottom: '1rem' }}>
           <label className="label">Data</label>
-          <input 
-            type="date" 
-            className="input-field" 
+          <CustomDatePicker 
             value={date} 
-            onChange={(e) => setDate(e.target.value)}
+            onChange={setDate}
           />
         </div>
 

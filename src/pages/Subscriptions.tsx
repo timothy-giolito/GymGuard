@@ -4,6 +4,7 @@ import { format, addMonths, isAfter, differenceInDays } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { store } from '../lib/store';
 import { CustomDatePicker } from '../components/CustomDatePicker';
+import { CustomSelect } from '../components/CustomSelect';
 
 interface Subscription {
   id: string;
@@ -94,15 +95,14 @@ export default function Subscriptions() {
           <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
               <label className="label">Giorni attivi</label>
-              <select 
-                className="input-field" 
+              <CustomSelect 
                 value={activeDays} 
-                onChange={(e) => setActiveDays(e.target.value)}
-                required
-              >
-                <option value="Lunedì - Venerdì">Lunedì - Venerdì</option>
-                <option value="Lunedì - Domenica">Lunedì - Domenica</option>
-              </select>
+                onChange={setActiveDays}
+                options={[
+                  { value: 'Lunedì - Venerdì', label: 'Lunedì - Venerdì' },
+                  { value: 'Lunedì - Domenica', label: 'Lunedì - Domenica' }
+                ]}
+              />
             </div>
             
             <div>

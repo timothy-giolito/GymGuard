@@ -3,34 +3,31 @@ import { CreditCard, Calendar, Plus, Trash2 } from 'lucide-react';
 import { format, addMonths, isAfter, differenceInDays } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { store } from '../lib/store';
-
-type PlanType = 'lun-ven' | 'lun-sab';
+import { CustomDatePicker } from '../components/CustomDatePicker';
 
 interface Subscription {
   id: string;
-  plan: PlanType;
+  activeDays: string;
   startDate: string;
   durationMonths: number;
   price: number;
 }
 
-const PLAN_PRICES = {
-  'lun-ven': 45,
-  'lun-sab': 50
-};
-
-const PLAN_LABELS = {
-  'lun-ven': 'Lunedì - Venerdì',
-  'lun-sab': 'Lunedì - Sabato'
+const getActiveDaysLabel = (sub: any) => {
+  if (sub.activeDays) return sub.activeDays;
+  if (sub.plan === 'lun-sab') return 'Lunedì - Sabato';
+  if (sub.plan === 'lun-ven') return 'Lunedì - Venerdì';
+  return 'Non specificato';
 };
 
 export default function Subscriptions() {
   const [activeSub, setActiveSub] = useState<Subscription | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [plan, setPlan] = useState<PlanType>('lun-ven');
+  const [activeDays, setActiveDays] = useState('Lunedì - Venerdì');
   const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [duration, setDuration] = useState(1);
+  const [price, setPrice] = useState(45);
 
   useEffect(() => {
     store.getItem<Subscription>('active_subscription').then((data) => {
@@ -42,10 +39,10 @@ export default function Subscriptions() {
     e.preventDefault();
     const newSub: Subscription = {
       id: Date.now().toString(),
-      plan,
+      activeDays,
       startDate,
       durationMonths: duration,
-      price: PLAN_PRICES[plan] * duration
+      price
     };
     
     await store.setItem('active_subscription', newSub);
@@ -96,45 +93,54 @@ export default function Subscriptions() {
         <div className="card">
           <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
-              <label className="label">Piano</label>
+              <label className="label">Giorni attivi</label>
               <select 
                 className="input-field" 
-                value={plan} 
-                onChange={(e) => setPlan(e.target.value as PlanType)}
+                value={activeDays} 
+                onChange={(e) => setActiveDays(e.target.value)}
+                required
               >
-                <option value="lun-ven">Lunedì - Venerdì (€45/mese)</option>
-                <option value="lun-sab">Lunedì - Sabato (€50/mese)</option>
+                <option value="Lunedì - Venerdì">Lunedì - Venerdì</option>
+                <option value="Lunedì - Domenica">Lunedì - Domenica</option>
               </select>
             </div>
             
             <div>
               <label className="label">Data di Inizio</label>
-              <input 
-                type="date" 
-                className="input-field" 
+              <CustomDatePicker 
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                required
+                onChange={setStartDate}
               />
             </div>
             
-            <div>
-              <label className="label">Durata (Mesi)</label>
-              <input 
-                type="number" 
-                min="1" 
-                max="12" 
-                className="input-field" 
-                value={duration}
-                onChange={(e) => setDuration(parseInt(e.target.value) || 1)}
-                required
-              />
-            </div>
-            
-            <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--color-primary)' }}>
-                Totale: €{PLAN_PRICES[plan] * duration}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div>
+                <label className="label">Durata (Mesi)</label>
+                <input 
+                  type="number" 
+                  min="1" 
+                  max="24" 
+                  className="input-field" 
+                  value={duration}
+                  onChange={(e) => setDuration(parseInt(e.target.value) || 1)}
+                  required
+                />
               </div>
+              <div>
+                <label className="label">Importo Totale (€)</label>
+                <input 
+                  type="number" 
+                  min="0" 
+                  step="0.01"
+                  className="input-field" 
+                  value={price}
+                  onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
+                  required
+                />
+              </div>
+            </div>
+            
+            <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button type="button" className="btn" onClick={() => setShowForm(false)}>Annulla</button>
                 <button type="submit" className="btn btn-primary">Salva</button>
@@ -162,9 +168,9 @@ export default function Subscriptions() {
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
               <div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Piano Attivo</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Giorni Attivi</div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--color-primary)' }}>
-                  {PLAN_LABELS[activeSub.plan]}
+                  {getActiveDaysLabel(activeSub)}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>

@@ -81,7 +81,7 @@ export default function Subscriptions() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Il Mio Abbonamento</h2>
+        <h2 className="app-title" style={{ fontSize: '1.5rem' }}>Il Mio Abbonamento</h2>
         {!showForm && (
           <button className="btn btn-primary" onClick={() => setShowForm(true)}>
             <Plus size={20} />

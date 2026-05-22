@@ -18,8 +18,8 @@ export default function Timer() {
   } = useTimer();
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '2rem', width: '100%' }}>Timer Recupero</h2>
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
+      <h2 className="app-title" style={{ fontSize: '1.5rem', marginBottom: '2rem', width: '100%' }}>Timer Recupero</h2>
 
       {/* Visual Timer */}
       <div style={{ position: 'relative', width: '200px', height: '200px', marginBottom: '2rem' }}>

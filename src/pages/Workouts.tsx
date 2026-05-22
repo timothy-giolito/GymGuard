@@ -118,7 +118,7 @@ export default function Workouts() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Le Mie Schede</h2>
+        <h2 className="app-title" style={{ fontSize: '1.5rem' }}>Le Mie Schede</h2>
         <button className="btn btn-primary" onClick={() => fileInputRef.current?.click()}>
           <Upload size={20} />
           Carica

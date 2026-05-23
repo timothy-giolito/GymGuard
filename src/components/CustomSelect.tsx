@@ -1,80 +1,132 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 interface Option {
   value: string;
   label: string;
+  disabled?: boolean;
 }
 
 interface CustomSelectProps {
-  value: string;
   options: Option[];
-  onChange: (value: string) => void;
+  value: string | string[];
+  onChange: (value: any) => void;
   placeholder?: string;
+  style?: React.CSSProperties;
+  multiple?: boolean;
 }
 
-export function CustomSelect({ value, options, onChange, placeholder = 'Seleziona...' }: CustomSelectProps) {
-  const [showModal, setShowModal] = useState(false);
+export function CustomSelect({ options, value, onChange, placeholder, style, multiple }: CustomSelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const selectedOption = options.find(o => o.value === value);
+  const getDisplayText = () => {
+    if (multiple && Array.isArray(value)) {
+      if (value.length === 0) return placeholder || 'Seleziona...';
+      if (value.length === 1) return options.find(opt => opt.value === value[0])?.label || value[0];
+      return `${value.length} selezionati`;
+    }
+    const selectedOption = options.find(opt => opt.value === value);
+    return selectedOption ? selectedOption.label : (placeholder || 'Seleziona...');
+  };
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
-    <>
+    <div ref={containerRef} style={{ position: 'relative', width: '100%', ...style }}>
       <div 
-        className="input-field" 
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none', backgroundColor: 'var(--bg-surface)' }}
-        onClick={() => setShowModal(true)}
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          cursor: 'pointer',
+          width: '100%',
+          background: 'transparent',
+          color: (multiple && Array.isArray(value) && value.length > 0) || (!multiple && value) ? 'var(--text-main)' : 'var(--text-muted)',
+          fontSize: 'inherit'
+        }}
       >
-        <span style={{ color: selectedOption ? 'var(--text)' : 'var(--text-muted)' }}>
-          {selectedOption ? selectedOption.label : placeholder}
-        </span>
-        <ChevronDown size={18} style={{ color: 'var(--text-muted)' }} />
+        <span>{getDisplayText()}</span>
+        <ChevronDown size={18} style={{ color: 'var(--text-muted)', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }} />
       </div>
 
-      {showModal && (
+      {isOpen && (
         <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '1rem'
+          position: 'absolute',
+          top: '100%',
+          left: 0,
+          right: 0,
+          marginTop: '0.5rem',
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '0.75rem',
+          zIndex: 50,
+          maxHeight: '250px',
+          overflowY: 'auto',
+          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)'
         }}>
-          <div className="card animate-in fade-in zoom-in duration-200" style={{ width: '100%', maxWidth: '350px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 'bold', marginBottom: '1rem' }}>Seleziona opzione</h3>
-            
-            {options.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className="btn"
-                style={{
-                  width: '100%',
-                  justifyContent: 'flex-start',
-                  padding: '1rem',
-                  backgroundColor: value === option.value ? 'var(--color-primary)' : 'var(--bg-surface-hover)',
-                  color: value === option.value ? 'white' : 'var(--text)',
-                  border: 'none',
-                  textAlign: 'left'
-                }}
+          {options.map((opt) => {
+            const isSelected = multiple && Array.isArray(value) 
+              ? value.includes(opt.value) 
+              : value === opt.value;
+              
+            return (
+              <div
+                key={opt.value}
                 onClick={() => {
-                  onChange(option.value);
-                  setShowModal(false);
+                  if (!opt.disabled) {
+                    if (multiple && Array.isArray(value)) {
+                      if (isSelected) {
+                        onChange(value.filter(v => v !== opt.value));
+                      } else {
+                        onChange([...value, opt.value]);
+                      }
+                    } else {
+                      onChange(opt.value);
+                      setIsOpen(false);
+                    }
+                  }
+                }}
+                style={{
+                  padding: '0.75rem 1rem',
+                  cursor: opt.disabled ? 'not-allowed' : 'pointer',
+                  color: opt.disabled ? 'var(--text-muted)' : (isSelected ? 'var(--color-primary)' : 'var(--text-main)'),
+                  background: isSelected ? 'var(--bg-surface-hover)' : 'transparent',
+                  borderBottom: '1px solid var(--border-color)',
+                  fontSize: '0.875rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+                onMouseEnter={(e) => {
+                  if (!opt.disabled && !isSelected) {
+                    e.currentTarget.style.background = 'var(--bg-surface-hover)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!opt.disabled && !isSelected) {
+                    e.currentTarget.style.background = 'transparent';
+                  }
                 }}
               >
-                {option.label}
-              </button>
-            ))}
-            
-            <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="button" className="btn" onClick={() => setShowModal(false)}>Annulla</button>
-            </div>
-          </div>
+                {opt.label}
+                {multiple && isSelected && (
+                  <span style={{ color: 'var(--color-primary)' }}>✓</span>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
-    </>
+    </div>
   );
 }

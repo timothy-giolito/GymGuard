@@ -15,6 +15,7 @@ export interface WorkoutExercise {
 
 export interface WorkoutSession {
   id: string;
+  name?: string;
   date: string; // ISO string
   exercises: WorkoutExercise[];
   notes?: string;

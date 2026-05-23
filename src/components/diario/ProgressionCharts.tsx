@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import type { WorkoutSession } from '../../lib/workoutStore';
 import { format, parseISO, subDays, subMonths, isAfter } from 'date-fns';
+import { CustomSelect } from '../CustomSelect';
 
 interface ProgressionChartsProps {
   workouts: WorkoutSession[];
@@ -11,14 +12,28 @@ type PeriodFilter = '1w' | '1m' | '3m' | '6m' | '1y' | 'all';
 
 export default function ProgressionCharts({ workouts }: ProgressionChartsProps) {
   const [period, setPeriod] = useState<PeriodFilter>('1m');
+  const [filterName, setFilterName] = useState<string>('all');
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
 
-  // 1. Extract all unique exercise names
-  const allExercises = useMemo(() => {
+  const uniqueNames = useMemo(() => {
     const names = new Set<string>();
-    workouts.forEach(w => w.exercises.forEach(ex => names.add(ex.name.toLowerCase().trim())));
+    workouts.forEach(w => {
+      if (w.name) names.add(w.name.trim());
+    });
     return Array.from(names).sort();
   }, [workouts]);
+
+  const filteredByName = useMemo(() => {
+    if (filterName === 'all') return workouts;
+    return workouts.filter(w => w.name && w.name.trim() === filterName);
+  }, [workouts, filterName]);
+
+  // 1. Extract all unique exercise names based on filtered workouts by name
+  const allExercises = useMemo(() => {
+    const names = new Set<string>();
+    filteredByName.forEach(w => w.exercises.forEach(ex => names.add(ex.name.toLowerCase().trim())));
+    return Array.from(names).sort();
+  }, [filteredByName]);
 
   // Set initial selected exercise if none selected and we have some
   if (selectedExercises.length === 0 && allExercises.length > 0) {
@@ -27,7 +42,7 @@ export default function ProgressionCharts({ workouts }: ProgressionChartsProps) 
 
   // 2. Filter workouts by date
   const filteredWorkouts = useMemo(() => {
-    if (period === 'all') return workouts;
+    if (period === 'all') return filteredByName;
     
     const now = new Date();
     let cutoff: Date;
@@ -41,8 +56,8 @@ export default function ProgressionCharts({ workouts }: ProgressionChartsProps) 
       default: cutoff = subMonths(now, 1);
     }
     
-    return workouts.filter(w => isAfter(parseISO(w.date), cutoff));
-  }, [workouts, period]);
+    return filteredByName.filter(w => isAfter(parseISO(w.date), cutoff));
+  }, [filteredByName, period]);
 
   // 3. Prepare data for Recharts
   const chartData = useMemo(() => {
@@ -71,16 +86,6 @@ export default function ProgressionCharts({ workouts }: ProgressionChartsProps) 
     });
   }, [filteredWorkouts, selectedExercises]);
 
-  const toggleExercise = (name: string) => {
-    if (selectedExercises.includes(name)) {
-      if (selectedExercises.length > 1) { // Prevent unselecting all
-        setSelectedExercises(selectedExercises.filter(n => n !== name));
-      }
-    } else {
-      setSelectedExercises([...selectedExercises, name]);
-    }
-  };
-
   const colors = ['#a3e635', '#60a5fa', '#f472b6', '#fbbf24', '#c084fc'];
 
   if (workouts.length === 0) {
@@ -95,18 +100,43 @@ export default function ProgressionCharts({ workouts }: ProgressionChartsProps) 
     <div className="card" style={{ marginBottom: '1.25rem' }}>
       <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Progressione Carichi</h2>
       
-      {/* Period Filter */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
-        {(['1w', '1m', '3m', '6m', '1y', 'all'] as PeriodFilter[]).map(p => (
-          <button
-            key={p}
-            onClick={() => setPeriod(p)}
-            className={`btn ${period === p ? 'btn-primary' : ''}`}
-            style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', flexShrink: 0 }}
-          >
-            {p === '1w' ? '1 Sett' : p === '1m' ? '1 Mese' : p === '3m' ? '3 Mesi' : p === '6m' ? '6 Mesi' : p === '1y' ? '1 Anno' : 'Tutto'}
-          </button>
-        ))}
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+        {uniqueNames.length > 0 && (
+          <div className="card" style={{ padding: '0.25rem 1rem', display: 'flex', alignItems: 'center', minWidth: '200px' }}>
+            <CustomSelect
+              value={filterName}
+              onChange={(val) => {
+                setFilterName(val);
+                setSelectedExercises([]);
+              }}
+              options={[
+                { value: 'all', label: 'Tutte le Schede' },
+                ...uniqueNames.map(name => ({ value: name, label: name }))
+              ]}
+              style={{ fontSize: '0.875rem' }}
+            />
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+          {(['1w', '1m', '3m', '6m', '1y', 'all'] as PeriodFilter[]).map(p => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className="card"
+              style={{ 
+                padding: '0.75rem 1rem', 
+                fontSize: '0.875rem', 
+                flexShrink: 0, 
+                cursor: 'pointer',
+                background: period === p ? 'var(--bg-surface-active)' : 'var(--bg-surface)',
+                color: period === p ? 'var(--text-main)' : 'var(--text-muted)'
+              }}
+            >
+              {p === '1w' ? '1 Sett' : p === '1m' ? '1 Mese' : p === '3m' ? '3 Mesi' : p === '6m' ? '6 Mesi' : p === '1y' ? '1 Anno' : 'Tutto'}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Chart */}
@@ -140,29 +170,21 @@ export default function ProgressionCharts({ workouts }: ProgressionChartsProps) 
       </div>
 
       {/* Exercise Selector */}
-      <div>
-        <label className="label">Confronta Esercizi</label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-          {allExercises.map(exName => (
-            <button
-              key={exName}
-              onClick={() => toggleExercise(exName)}
-              style={{
-                background: selectedExercises.includes(exName) ? 'var(--bg-surface-active)' : 'var(--bg-main)',
-                border: `1px solid ${selectedExercises.includes(exName) ? 'var(--color-primary)' : 'var(--border-color)'}`,
-                color: selectedExercises.includes(exName) ? 'var(--text-main)' : 'var(--text-muted)',
-                padding: '0.5rem 0.75rem',
-                borderRadius: '2rem',
-                fontSize: '0.75rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {exName.charAt(0).toUpperCase() + exName.slice(1)}
-            </button>
-          ))}
+        <div className="card" style={{ display: 'flex', marginBottom: '0.75rem', padding: '0.25rem 1rem', alignItems: 'center' }}>
+          <CustomSelect
+            multiple={true}
+            value={selectedExercises}
+            onChange={(val) => {
+              setSelectedExercises(val);
+            }}
+            placeholder="Seleziona esercizi..."
+            options={allExercises.map(exName => ({
+              value: exName,
+              label: exName.charAt(0).toUpperCase() + exName.slice(1)
+            }))}
+            style={{ fontSize: '0.875rem' }}
+          />
         </div>
-      </div>
     </div>
   );
 }

@@ -14,6 +14,7 @@ interface WorkoutFormProps {
 export default function WorkoutForm({ onSave, onCancel, initialWorkout }: WorkoutFormProps) {
   const [id, setId] = useState(workoutStore.createId());
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [name, setName] = useState('');
   const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
   const [notes, setNotes] = useState('');
   const [lastWorkout, setLastWorkout] = useState<WorkoutSession | null>(null);
@@ -27,6 +28,7 @@ export default function WorkoutForm({ onSave, onCancel, initialWorkout }: Workou
       if (initialWorkout) {
         setId(initialWorkout.id);
         setDate(initialWorkout.date);
+        setName(initialWorkout.name || '');
         setExercises(initialWorkout.exercises);
         setNotes(initialWorkout.notes || '');
       } else {
@@ -34,11 +36,13 @@ export default function WorkoutForm({ onSave, onCancel, initialWorkout }: Workou
         if (draft) {
           setId(draft.id || workoutStore.createId());
           setDate(draft.date);
+          setName(draft.name || '');
           setExercises(draft.exercises || []);
           setNotes(draft.notes || '');
         } else {
           setId(workoutStore.createId());
           setDate(new Date().toISOString().split('T')[0]);
+          setName('');
           setExercises([]);
           setNotes('');
         }
@@ -50,12 +54,13 @@ export default function WorkoutForm({ onSave, onCancel, initialWorkout }: Workou
 
   useEffect(() => {
     if (initialized) {
-      localforage.setItem('gymguard_workout_draft', { id, date, exercises, notes });
+      localforage.setItem('gymguard_workout_draft', { id, name, date, exercises, notes });
     }
-  }, [id, date, exercises, notes, initialized]);
+  }, [id, name, date, exercises, notes, initialized]);
 
   const handleDuplicateLast = () => {
     if (lastWorkout) {
+      setName(lastWorkout.name || '');
       // Create new IDs for duplicated exercises and sets
       const duplicatedExercises = lastWorkout.exercises.map(ex => ({
         ...ex,
@@ -133,6 +138,7 @@ export default function WorkoutForm({ onSave, onCancel, initialWorkout }: Workou
 
     const session: WorkoutSession = {
       id: id,
+      name: name.trim() || undefined,
       date,
       exercises: validExercises,
       notes
@@ -148,6 +154,17 @@ export default function WorkoutForm({ onSave, onCancel, initialWorkout }: Workou
       <div className="card" style={{ marginBottom: '1.25rem' }}>
         <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Nuovo Allenamento</h2>
         
+        <div style={{ marginBottom: '1rem' }}>
+          <label className="label">Nome Allenamento (Opzionale)</label>
+          <input 
+            type="text" 
+            className="input-field" 
+            placeholder="Es. Scheda A, Gambe, Push..." 
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+
         <div style={{ marginBottom: '1rem' }}>
           <label className="label">Data</label>
           <CustomDatePicker 

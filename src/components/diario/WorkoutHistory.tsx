@@ -1,18 +1,34 @@
 import { workoutStore } from '../../lib/workoutStore';
 import type { WorkoutSession } from '../../lib/workoutStore';
 import { format, parseISO } from 'date-fns';
-import { Trash2, ChevronDown, ChevronUp, Edit2 } from 'lucide-react';
-import { useState } from 'react';
+import { Trash2, ChevronDown, ChevronUp, Edit2, Copy } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { CustomSelect } from '../CustomSelect';
 
 interface WorkoutHistoryProps {
   workouts: WorkoutSession[];
   onUpdate: () => void;
   onEdit: (workout: WorkoutSession) => void;
+  onDuplicate: (workout: WorkoutSession) => void;
 }
 
-export default function WorkoutHistory({ workouts, onUpdate, onEdit }: WorkoutHistoryProps) {
+export default function WorkoutHistory({ workouts, onUpdate, onEdit, onDuplicate }: WorkoutHistoryProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [filterName, setFilterName] = useState<string>('all');
+
+  const uniqueNames = useMemo(() => {
+    const names = new Set<string>();
+    workouts.forEach(w => {
+      if (w.name) names.add(w.name.trim());
+    });
+    return Array.from(names).sort();
+  }, [workouts]);
+
+  const filteredWorkouts = useMemo(() => {
+    if (filterName === 'all') return workouts;
+    return workouts.filter(w => w.name && w.name.trim() === filterName);
+  }, [workouts, filterName]);
 
   const handleDeleteRequest = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -41,7 +57,27 @@ export default function WorkoutHistory({ workouts, onUpdate, onEdit }: WorkoutHi
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      {workouts.map(workout => (
+      
+      {uniqueNames.length > 0 && (
+        <div className="card" style={{ marginBottom: '0.5rem', padding: '0.5rem 1rem' }}>
+          <CustomSelect
+            value={filterName}
+            onChange={setFilterName}
+            options={[
+              { value: 'all', label: 'Tutti gli allenamenti' },
+              ...uniqueNames.map(name => ({ value: name, label: name }))
+            ]}
+            style={{ fontSize: '1rem' }}
+          />
+        </div>
+      )}
+
+      {filteredWorkouts.length === 0 ? (
+        <div className="card" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+          <p style={{ color: 'var(--text-muted)' }}>Nessun allenamento trovato per questo filtro.</p>
+        </div>
+      ) : (
+        filteredWorkouts.map(workout => (
         <div key={workout.id} className="card" style={{ padding: '0', overflow: 'hidden' }}>
           
           {/* Header (Clickable) */}
@@ -59,7 +95,16 @@ export default function WorkoutHistory({ workouts, onUpdate, onEdit }: WorkoutHi
           >
             <div>
               <div style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '0.25rem' }}>
-                {format(parseISO(workout.date), 'dd/MM/yyyy')}
+                {workout.name ? (
+                  <>
+                    <span style={{ color: 'var(--color-primary)' }}>{workout.name}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: '0.5rem', fontWeight: 400 }}>
+                      {format(parseISO(workout.date), 'dd/MM/yyyy')}
+                    </span>
+                  </>
+                ) : (
+                  format(parseISO(workout.date), 'dd/MM/yyyy')
+                )}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                 {workout.exercises.length} {workout.exercises.length === 1 ? 'esercizio' : 'esercizi'}
@@ -74,6 +119,14 @@ export default function WorkoutHistory({ workouts, onUpdate, onEdit }: WorkoutHi
                 aria-label="Modifica"
               >
                 <Edit2 size={18} />
+              </button>
+              <button 
+                className="btn" 
+                style={{ padding: '0.5rem', background: 'transparent', border: 'none', color: 'var(--text-main)' }}
+                onClick={(e) => { e.stopPropagation(); onDuplicate(workout); }}
+                aria-label="Duplica"
+              >
+                <Copy size={18} />
               </button>
               <button 
                 className="btn" 
@@ -115,7 +168,7 @@ export default function WorkoutHistory({ workouts, onUpdate, onEdit }: WorkoutHi
           )}
           
         </div>
-      ))}
+      )))}
 
       {itemToDelete && (
         <div style={{

@@ -42,6 +42,25 @@ export default function Diario() {
     setActiveTab('overview');
   };
 
+  const handleDuplicate = (workout: WorkoutSession) => {
+    const newWorkout: WorkoutSession = {
+      ...workout,
+      id: workoutStore.createId(),
+      date: new Date().toISOString().split('T')[0],
+      exercises: workout.exercises.map(ex => ({
+        ...ex,
+        id: workoutStore.createId(),
+        sets: ex.sets.map(s => ({
+          ...s,
+          id: workoutStore.createId(),
+          completed: false
+        }))
+      }))
+    };
+    setWorkoutToEdit(newWorkout);
+    setActiveTab('add');
+  };
+
   if (loading) {
     return <div style={{ padding: '2rem', textAlign: 'center' }}>Caricamento...</div>;
   }
@@ -95,7 +114,7 @@ export default function Diario() {
 
         {activeTab === 'history' && (
           <div className="fade-in">
-            <WorkoutHistory workouts={workouts} onUpdate={loadWorkouts} onEdit={handleEdit} />
+            <WorkoutHistory workouts={workouts} onUpdate={loadWorkouts} onEdit={handleEdit} onDuplicate={handleDuplicate} />
           </div>
         )}
       </div>

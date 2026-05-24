@@ -5,8 +5,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, pass: string) => Promise<void>;
-  register: (email: string, pass: string) => Promise<void>;
+  login: (name: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -34,46 +33,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
   }, []);
 
-  const login = async (email: string, pass: string) => {
-    setIsLoading(true);
+  const login = async (name: string) => {
     try {
-      const session = await authService.signIn(email, pass);
+      setIsLoading(true);
+      const session = await authService.signIn(name);
       setUser(session.user);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const register = async (email: string, pass: string) => {
-    setIsLoading(true);
-    try {
-      const session = await authService.signUp(email, pass);
-      setUser(session.user);
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
   const logout = async () => {
-    setIsLoading(true);
     try {
+      setIsLoading(true);
       await authService.signOut();
       setUser(null);
+    } catch (error) {
+      console.error('Logout error:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const value = {
-    user,
-    isAuthenticated: !!user,
-    isLoading,
-    login,
-    register,
-    logout
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

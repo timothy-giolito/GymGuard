@@ -130,7 +130,7 @@ export default function Profile() {
         </div>
         <div>
           <h2 className="app-title" style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Profilo Personale</h2>
-          <div style={{ color: 'var(--text-muted)' }}>{user?.email}</div>
+          <div style={{ color: 'var(--text-muted)' }}>{user?.name}</div>
         </div>
       </div>
       

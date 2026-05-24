@@ -2,34 +2,28 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../lib/AuthContext';
-import { Lock, Mail, Dumbbell, ArrowRight, UserPlus } from 'lucide-react';
+import { User, Dumbbell, ArrowRight } from 'lucide-react';
 
 export default function Login() {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
-  const { login, register, isLoading } = useAuth();
+  const { login, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!email || !password) {
-      setError('Per favore compila tutti i campi.');
+    if (!name.trim()) {
+      setError('Per favore inserisci un nome valido.');
       return;
     }
 
     try {
-      if (isLogin) {
-        await login(email, password);
-      } else {
-        await register(email, password);
-      }
+      await login(name.trim());
       navigate('/subscriptions', { replace: true });
     } catch (err: any) {
-      setError(err.message || 'Errore durante l\'autenticazione');
+      setError(err.message || 'Errore durante l\'accesso');
     }
   };
 
@@ -99,13 +93,12 @@ export default function Login() {
         <div className="card" style={{ padding: '2rem', border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
           <AnimatePresence mode="wait">
             <motion.h2 
-              key={isLogin ? 'login' : 'register'}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
               style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem', textAlign: 'center' }}
             >
-              {isLogin ? 'Accedi al tuo account' : 'Crea un nuovo account'}
+              Inizia il tuo allenamento
             </motion.h2>
           </AnimatePresence>
 
@@ -121,33 +114,18 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Email</label>
+              <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Come ti chiami?</label>
               <div style={{ position: 'relative' }}>
-                <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <User size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input 
-                  type="email" 
+                  type="text" 
                   className="input-field" 
                   style={{ paddingLeft: '2.75rem' }}
-                  placeholder="La tua email" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Il tuo nome" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   disabled={isLoading}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Password</label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input 
-                  type="password" 
-                  className="input-field" 
-                  style={{ paddingLeft: '2.75rem' }}
-                  placeholder="La tua password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
+                  autoFocus
                 />
               </div>
             </div>
@@ -162,23 +140,12 @@ export default function Login() {
                 <span style={{ opacity: 0.7 }}>Caricamento...</span>
               ) : (
                 <>
-                  {isLogin ? 'Accedi' : 'Registrati'}
-                  {isLogin ? <ArrowRight size={18} /> : <UserPlus size={18} />}
+                  Inizia
+                  <ArrowRight size={18} />
                 </>
               )}
             </button>
           </form>
-
-          <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-            <button 
-              type="button" 
-              onClick={() => { setIsLogin(!isLogin); setError(''); }}
-              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.875rem', cursor: 'pointer', textDecoration: 'underline' }}
-              disabled={isLoading}
-            >
-              {isLogin ? 'Non hai un account? Registrati' : 'Hai già un account? Accedi'}
-            </button>
-          </div>
         </div>
       </motion.div>
     </div>

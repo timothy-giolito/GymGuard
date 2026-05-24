@@ -3,7 +3,7 @@ import { Preferences } from '@capacitor/preferences';
 // Tipo base per l'utente
 export interface User {
   id: string;
-  email: string;
+  name: string;
 }
 
 // Tipo per la sessione restituita dall'auth service
@@ -44,44 +44,22 @@ class AuthService {
   }
 
   /**
-   * Effettua il Login.
-   * Mock iniziale: accetta qualsiasi credenziale e genera un token fittizio.
+   * Effettua il Login (ora basta solo il nome)
    */
-  async signIn(email: string, password: string): Promise<Session> {
+  async signIn(name: string): Promise<Session> {
     await this.delay();
     
-    // TODO: Inserire qui l'implementazione reale, es:
-    // const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    
-    // Mock
-    if (!email || !password) {
-      throw new Error("Email e password sono obbligatori");
+    if (!name) {
+      throw new Error('Il nome è obbligatorio');
     }
-
-    const mockSession: Session = {
-      user: { id: `usr_${Date.now()}`, email },
+    
+    const session: Session = {
+      user: { id: `usr_${Date.now()}`, name },
       token: `jwt_mock_${Date.now()}`
     };
 
-    await this.persistSession(mockSession);
-    return mockSession;
-  }
-
-  /**
-   * Effettua la Registrazione.
-   */
-  async signUp(email: string, _password: string): Promise<Session> {
-    await this.delay();
-    
-    // TODO: Implementazione reale Supabase/Firebase
-    
-    const mockSession: Session = {
-      user: { id: `usr_${Date.now()}`, email },
-      token: `jwt_mock_${Date.now()}`
-    };
-
-    await this.persistSession(mockSession);
-    return mockSession;
+    await this.persistSession(session);
+    return session;
   }
 
   /**

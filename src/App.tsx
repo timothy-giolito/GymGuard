@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Timer as TimerIcon, FileText, Dumbbell, LogOut, User } from 'lucide-react';
+import { LayoutDashboard, Timer as TimerIcon, FileText, Dumbbell, User } from 'lucide-react';
 import { useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -16,7 +16,7 @@ import PrivateRoute from './components/PrivateRoute';
 function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const isAuthPage = location.pathname === '/login';
 
   return (
@@ -25,22 +25,13 @@ function AppContent() {
         <div className="app-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h1 className="app-title">GymGuard</h1>
           {isAuthenticated && (
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-              <button 
-                onClick={() => navigate('/profile')} 
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                title="Profilo"
-              >
-                <User size={20} />
-              </button>
-              <button 
-                onClick={() => logout()} 
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                title="Logout"
-              >
-                <LogOut size={20} />
-              </button>
-            </div>
+            <button 
+              onClick={() => navigate('/profile')} 
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              title="Profilo"
+            >
+              <User size={20} />
+            </button>
           )}
         </div>
       )}

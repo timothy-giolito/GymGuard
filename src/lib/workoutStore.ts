@@ -19,6 +19,7 @@ export interface WorkoutSession {
   date: string; // ISO string
   exercises: WorkoutExercise[];
   notes?: string;
+  userId?: string;
 }
 
 const STORE_KEY = 'gymguard_workouts';

@@ -12,6 +12,7 @@ interface Subscription {
   startDate: string;
   durationMonths: number;
   price: number;
+  userId?: string;
 }
 
 const getActiveDaysLabel = (sub: any) => {

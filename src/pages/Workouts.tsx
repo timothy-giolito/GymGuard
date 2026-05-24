@@ -9,6 +9,7 @@ interface WorkoutFile {
   type: string;
   dataUrl?: string; // Stored as Base64 string for better persistence
   data?: Blob; // Legacy format
+  userId?: string;
 }
 
 export default function Workouts() {

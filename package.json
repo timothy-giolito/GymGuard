@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/preferences": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
     "@capawesome-team/capacitor-file-opener": "^8.0.1",
     "date-fns": "^4.1.0",

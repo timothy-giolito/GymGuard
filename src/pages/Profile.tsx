@@ -4,13 +4,14 @@ import { profileStore, type BodyMetricLog } from '../lib/profileStore';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Plus, Trash2, Activity, User, Save, X } from 'lucide-react';
+import { Plus, Trash2, Activity, User, Save, X, Edit2 } from 'lucide-react';
 
 export default function Profile() {
   const { user } = useAuth();
   const [metrics, setMetrics] = useState<BodyMetricLog[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [editingMetricId, setEditingMetricId] = useState<string | null>(null);
   
   // Form fields
   const [weight, setWeight] = useState('');
@@ -40,9 +41,20 @@ export default function Profile() {
     e.preventDefault();
     if (!user || !weight) return;
     
+    let targetId = profileStore.createId();
+    let targetDate = new Date().toISOString();
+
+    if (editingMetricId) {
+      const existing = metrics.find(m => m.id === editingMetricId);
+      if (existing) {
+        targetId = existing.id;
+        targetDate = existing.date;
+      }
+    }
+    
     const newMetric: BodyMetricLog = {
-      id: profileStore.createId(),
-      date: new Date().toISOString(),
+      id: targetId,
+      date: targetDate,
       weight: parseFloat(weight),
       height: height ? parseFloat(height) : undefined,
       chest: chest ? parseFloat(chest) : undefined,
@@ -53,13 +65,45 @@ export default function Profile() {
     };
     
     await profileStore.saveMetric(newMetric);
-    setShowForm(false);
-    resetForm();
+    handleCancelForm();
     loadMetrics();
   };
   
   const resetForm = () => {
     setWeight(''); setHeight(''); setChest(''); setWaist(''); setArms(''); setLegs('');
+  };
+
+  const handleNewMeasurement = () => {
+    if (metrics.length > 0) {
+      const last = metrics[0]; // Già ordinato per data decrescente
+      setWeight(last.weight.toString());
+      setHeight(last.height?.toString() || '');
+      setChest(last.chest?.toString() || '');
+      setWaist(last.waist?.toString() || '');
+      setArms(last.arms?.toString() || '');
+      setLegs(last.legs?.toString() || '');
+    } else {
+      resetForm();
+    }
+    setEditingMetricId(null);
+    setShowForm(true);
+  };
+
+  const handleCancelForm = () => {
+    setShowForm(false);
+    setEditingMetricId(null);
+    resetForm();
+  };
+
+  const requestEdit = (m: BodyMetricLog) => {
+    setEditingMetricId(m.id);
+    setWeight(m.weight.toString());
+    setHeight(m.height?.toString() || '');
+    setChest(m.chest?.toString() || '');
+    setWaist(m.waist?.toString() || '');
+    setArms(m.arms?.toString() || '');
+    setLegs(m.legs?.toString() || '');
+    setShowForm(true);
   };
 
   const requestDelete = (id: string) => {
@@ -118,7 +162,7 @@ export default function Profile() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Storico Misurazioni</h3>
         {!showForm && (
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+          <button className="btn btn-primary" onClick={handleNewMeasurement}>
             <Plus size={18} />
             Nuovo
           </button>
@@ -128,8 +172,8 @@ export default function Profile() {
       {showForm && (
         <div className="card animate-in zoom-in-95 duration-200" style={{ marginBottom: '1.5rem', border: '1px solid var(--color-primary)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <h4 style={{ fontWeight: 'bold' }}>Nuova Misurazione</h4>
-            <button className="btn" style={{ padding: '0.25rem' }} onClick={() => setShowForm(false)}>
+            <h4 style={{ fontWeight: 'bold' }}>{editingMetricId ? 'Modifica Misurazione' : 'Nuova Misurazione'}</h4>
+            <button className="btn" style={{ padding: '0.25rem' }} onClick={handleCancelForm}>
               <X size={18} />
             </button>
           </div>
@@ -198,9 +242,14 @@ export default function Profile() {
                 )}
               </div>
               
-              <button className="btn btn-danger" style={{ padding: '0.5rem' }} onClick={() => requestDelete(m.id)}>
-                <Trash2 size={16} />
-              </button>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button className="btn" style={{ padding: '0.5rem' }} onClick={() => requestEdit(m)}>
+                  <Edit2 size={16} />
+                </button>
+                <button className="btn btn-danger" style={{ padding: '0.5rem' }} onClick={() => requestDelete(m.id)}>
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
           ))
         )}
